@@ -2,6 +2,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
+import random
 import asyncio
 from app.schemas.room import ChatRoomCreate, ChatRoomResponse
 from app.schemas.message import MessageCreate, MessageResponse
@@ -30,7 +31,9 @@ async def create_room(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    new_room = create_chat_room(db, room_data, current_user.id)
+    random_id = random.randint(1000, 9999)
+    logger.info(f"Generated random 4-digit ID: {random_id} for room.")
+    new_room = create_chat_room(db, room_data, current_user.id, random_id)
     return new_room
 
 @router.get("/rooms/{room_id}", response_model=ChatRoomResponse)

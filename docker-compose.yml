@@ -1,21 +1,44 @@
 version: '3.8'
+
 services:
+  # MySQL container
   mysql:
     image: mysql:5.7
     environment:
       MYSQL_ROOT_PASSWORD: chatdb
       MYSQL_DATABASE: chatdb
     ports:
-      - "3306:3306"  # Expose MySQL on port 3306 to localhost
+      - "3306:3306"
     networks:
       - chat-network
     volumes:
-      - mysql_data:/var/lib/mysql  # Persist MySQL data
+      - mysql_data:/var/lib/mysql  # Persist MySQL data in a Docker volume
+
+  # FastAPI app container
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - DB_URL=mysql://root:chatdb@mysql:3306/chatdb  # Use service name `mysql` to connect
+      - SECRET_KEY=chat_app
+      - ALGORITHM=HS256
+      - ACCESS_TOKEN_EXPIRE_MINUTES=30
+      - ALLOWED_ORIGINS=*  # Added ALLOWED_ORIGINS for your app's CORS handling
+      - APP_NAME=Chat Application
+      - APP_VERSION=1.0.0
+    depends_on:
+      - mysql  # Ensure MySQL starts before FastAPI app
+    networks:
+      - chat-network
+    volumes:
+      - ./app:/app  # Mount the app directory (optional for live changes during development)
+    command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
 
 networks:
   chat-network:
-    driver: bridge
+    driver: bridge  # Use a bridge network to allow containers to communicate
 
 volumes:
   mysql_data:
-    driver: local
+    driver: local  # Use a Docker volume to persist MySQL data

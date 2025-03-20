@@ -1,0 +1,14 @@
+sqlalchemy 
+pydantic
+python-dotenv
+fastapi
+uvicorn
+pyjwt
+passlib
+bcrypt
+pydantic_settings
+python-jose
+pymysql
+python-multipart
+websockets
+mysqlclient

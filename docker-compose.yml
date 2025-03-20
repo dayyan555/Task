@@ -1,0 +1,21 @@
+version: '3.8'
+services:
+  mysql:
+    image: mysql:5.7
+    environment:
+      MYSQL_ROOT_PASSWORD: chatdb
+      MYSQL_DATABASE: chatdb
+    ports:
+      - "3306:3306"  # Expose MySQL on port 3306 to localhost
+    networks:
+      - chat-network
+    volumes:
+      - mysql_data:/var/lib/mysql  # Persist MySQL data
+
+networks:
+  chat-network:
+    driver: bridge
+
+volumes:
+  mysql_data:
+    driver: local

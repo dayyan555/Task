@@ -42,7 +42,7 @@ async def create_room(
     logger.info(f"Generated random 4-digit ID: {random_id} for room.")
     new_room = create_chat_room(db, room_data, current_user.id, random_id)
     print("new room", new_room.name)
-    return create_json_response(True, "Chat room successfully created.", data=new_room.name, status_code=201)
+    return new_room
 
 
 @router.get("/rooms/{room_id}", response_model=ChatRoomResponse)

@@ -48,9 +48,9 @@ async def health_check():
     return {"status": "healthy"}
 
 # Run the application
-if __name__ == "__main__":
-    import uvicorn
-    import asyncio
+# if __name__ == "__main__":
+#     import uvicorn
+#     import asyncio
     
-    logger.info(f"Starting {settings.APP_NAME} v{settings.APP_VERSION}")
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+#     logger.info(f"Starting {settings.APP_NAME} v{settings.APP_VERSION}")
+#     uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)

@@ -35,7 +35,7 @@ async def register_user(user_data: UserCreate, db: Session = Depends(get_db)):
     
     # Create new user with the random ID
     new_user = create_user(db, user_data, random_id)  # Pass the random ID to create_user
-    return create_json_response(True, "User successfully registered", data=new_user)
+    return new_user
 
 @router.post("/login", response_model=Token)
 async def login_for_access_token(form_data: LoginRequest, db: Session = Depends(get_db)):

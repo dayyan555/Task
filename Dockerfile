@@ -15,7 +15,7 @@ COPY requirements.txt .
 
 
 
-ENV PYTHONPATH=/app
+
 
 # Install Python dependencies from requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
@@ -23,6 +23,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the application code into the container
 COPY . .
+
+ENV PYTHONPATH=/app
 
 # Expose port 8000 for FastAPI
 EXPOSE 8000

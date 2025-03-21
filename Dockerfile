@@ -1,17 +1,34 @@
-# Use the official Python image as a base image
+# Start with the Python 3.10-slim image
 FROM python:3.10-slim
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    pkg-config \
+    libmariadb-dev \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*  # Clean up
 
 # Set the working directory inside the container
 WORKDIR /app
 
-# Copy the project files into the container
-COPY . /app
+COPY requirements.txt .
 
-# Install the required dependencies
+
+
+ENV PYTHONPATH=/app
+
+# Install Python dependencies from requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Expose the FastAPI app port (default is 8000)
+
+# Copy the application code into the container
+COPY . /app/
+
+# Expose port 8000 for FastAPI
 EXPOSE 8000
 
-# Command to run FastAPI app using Uvicorn
+
+
+
+# Run the application with uvicorn
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]

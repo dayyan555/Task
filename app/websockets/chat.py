@@ -34,8 +34,8 @@ async def chat_websocket(websocket: WebSocket, room_id: int, token: str = None):
                 return
             
             # Check if user is in the room
-            if room.is_private and user not in room.users:
-                await websocket.close(code=1008, reason="Not authorized to join this room")
+            if user not in room.users:
+                await websocket.close(code=1008, reason="Access denied: You are not a member of this room")
                 return
             
             # Accept the connection and add to connection manager
@@ -46,40 +46,35 @@ async def chat_websocket(websocket: WebSocket, room_id: int, token: str = None):
                     # Receive and process messages
                     data = await websocket.receive_text()
                     message_data = json.loads(data)
+
+                    message_text = message_data.get("text")
                     
                     # Process message based on type
-                    if message_data.get("type") == "chat_message":
-                        # Create and save message to database
-                        new_message = Message(
-                            text=message_data.get("text"),
-                            sender_id=user.id,
-                            room_id=room_id,
-                            created_at=datetime.utcnow()
-                        )
-                        db.add(new_message)
-                        db.commit()
-                        db.refresh(new_message)
-                        
-                        # Broadcast message to all users in the room
-                        await manager.broadcast_message({
-                            "type": "new_message",
-                            "id": new_message.id,
-                            "text": new_message.text,
-                            "sender_id": new_message.sender_id,
-                            "sender_username": user.username,
-                            "room_id": new_message.room_id,
-                            "created_at": new_message.created_at.isoformat()
-                        }, room_id)
+                    if not message_text:
+                        continue
+                    # Create and save message to database
+                    new_message = Message(
+                        text=message_data.get("text"),
+                        sender_id=user.id,
+                        room_id=room_id,
+                        created_at=datetime.utcnow()
+                    )
+                    db.add(new_message)
+                    db.commit()
+                    db.refresh(new_message)
                     
-                    elif message_data.get("type") == "typing":
-                        # Broadcast typing indicator
-                        await manager.broadcast_message({
-                            "type": "typing",
-                            "user_id": user.id,
-                            "username": user.username,
-                            "room_id": room_id,
-                            "is_typing": message_data.get("is_typing", False)
-                        }, room_id)
+                    # Broadcast message to all users in the room
+                    await manager.broadcast_message({
+                        "type": "new_message",
+                        "id": new_message.id,
+                        "text": new_message.text,
+                        "sender_id": new_message.sender_id,
+                        "sender_username": user.username,
+                        "room_id": new_message.room_id,
+                        "created_at": new_message.created_at.isoformat()
+                    }, room_id)
+                    
+                    
                 
             except WebSocketDisconnect:
                 # Handle disconnection

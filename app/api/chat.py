@@ -6,6 +6,7 @@ import random
 import asyncio
 from app.schemas.room import ChatRoomCreate, ChatRoomResponse
 from app.schemas.message import MessageCreate, MessageResponse
+from app.schemas.user import UserResponse
 from app.dependencies.auth import get_current_user
 from app.db.session import get_db
 from app.models.user import User
@@ -14,6 +15,8 @@ from app.crud.room import create_chat_room, get_chat_room, get_chat_rooms, add_u
 from app.crud.message import create_message, get_messages
 from app.websockets.connection import manager
 from app.utils.logger import logger
+from app.utils.utils import create_json_response
+import json
 
 router = APIRouter()
 
@@ -23,7 +26,11 @@ async def get_all_chat_rooms(
     current_user: User = Depends(get_current_user)
 ):
     rooms = get_chat_rooms(db)
+    if not rooms:
+        raise HTTPException(status_code=404, detail="No chat rooms found.")
+    
     return rooms
+    
 
 @router.post("/rooms", response_model=ChatRoomResponse)
 async def create_room(
@@ -34,7 +41,9 @@ async def create_room(
     random_id = random.randint(1000, 9999)
     logger.info(f"Generated random 4-digit ID: {random_id} for room.")
     new_room = create_chat_room(db, room_data, current_user.id, random_id)
-    return new_room
+    print("new room", new_room.name)
+    return create_json_response(True, "Chat room successfully created.", data=new_room.name, status_code=201)
+
 
 @router.get("/rooms/{room_id}", response_model=ChatRoomResponse)
 async def get_room_details(
@@ -44,12 +53,12 @@ async def get_room_details(
 ):
     room = get_chat_room(db, room_id)
     if not room:
-        raise HTTPException(status_code=404, detail="Chat room not found")
+        return create_json_response(False, "Chat room not found", status_code=404)
     
     # Check if user has access to the room
-    if room.is_private and current_user not in room.users:
-        logger.warning(f"Access denied: User {current_user.username} attempted to access private room {room.name}")
-        raise HTTPException(status_code=403, detail="Access denied to private room")
+    if current_user not in room.users:
+        logger.warning(f"Access denied: User {current_user.username} attempted to access room {room.name} they are not a member of.")
+        return create_json_response(False, "Access denied: You are not a member of this room", status_code=403)
     
     return room
 
@@ -61,17 +70,18 @@ async def join_room(
 ):
     room = get_chat_room(db, room_id)
     if not room:
-        raise HTTPException(status_code=404, detail="Room not found")
+        raise create_json_response(False, "Room not found", status_code=404)
     
     # Check if room is private and user is not already a member
-    if room.is_private and current_user not in room.users:
-        raise HTTPException(status_code=403, detail="Not authorized to join this private room")
+    if current_user in room.users:
+        return create_json_response(False, "You are already a member of this room", status_code=400)
+
     
     success = add_user_to_room(db, current_user.id, room_id)
     if success:
-        return {"detail": f"Joined room: {room.name}"}
+        return create_json_response(True, f"Successfully joined room: {room.name}", data={"room_id": room.id, "room_name": room.name})
     
-    raise HTTPException(status_code=400, detail="Failed to join room")
+    return create_json_response(False, "Failed to join room", status_code=400)
 
 
 @router.post("/rooms/{room_id}/leave")
@@ -82,21 +92,21 @@ async def leave_room(
 ):
     room = get_chat_room(db, room_id)
     if not room:
-        raise HTTPException(status_code=404, detail="Room not found")
+         return create_json_response(False, "Room not found", status_code=404)
     
     # Check if user is in the room
     if current_user not in room.users:
-        raise HTTPException(status_code=400, detail="You are not a member of this room")
+        return create_json_response(False, "You are not a member of this room", status_code=400)
     
     # Don't allow the creator to leave their own room
     if room.creator_id == current_user.id:
-        raise HTTPException(status_code=400, detail="Room creator cannot leave. Delete the room instead.")
+        return create_json_response(False, "Room creator cannot leave. Delete the room instead.", status_code=400)
     
     success = remove_user_from_room(db, current_user.id, room_id)
     if success:
-        return {"detail": f"Left room: {room.name}"}
+        return create_json_response(True, f"Successfully left room: {room.name}", data={"room_id": room.id, "room_name": room.name})
     
-    raise HTTPException(status_code=400, detail="Failed to leave room")
+    return create_json_response(False, "Failed to leave room", status_code=400)
 
 
 @router.get("/rooms/{room_id}/users")
@@ -107,25 +117,21 @@ async def get_room_users(
 ):
     room = get_chat_room(db, room_id)
     if not room:
-        raise HTTPException(status_code=404, detail="Room not found")
+        return create_json_response(False, "Room not found", status_code=404)
     
-    # Check if user has access to this room
-    if room.is_private and current_user not in room.users:
-        raise HTTPException(status_code=403, detail="Not authorized to access this room")
+    if current_user not in room.users:
+        logger.warning(f"Access denied: User {current_user.username} attempted to access room {room.name} they are not a member of.")
+        return create_json_response(False, "Access denied: You are not a member of this room", status_code=403)
     
     # Get active users in the room
     active_users = manager.get_active_users(room_id)
     
     # Prepare response with all room users and their online status
-    users_data = []
-    for user in room.users:
-        users_data.append({
-            "id": user.id,
-            "username": user.username,
-            "is_online": user.id in active_users
-        })
+    users_data = [
+        {"id": user.id, "username": user.username, "is_online": user.id in active_users} for user in room.users
+    ]
     
-    return {"users": users_data}
+    return create_json_response(True, "Room users successfully retrieved.", data={"users": users_data})
 
 
 @router.get("/rooms/{room_id}/messages", response_model=List[MessageResponse])
@@ -138,12 +144,13 @@ async def get_room_messages(
     # Check if room exists
     room = get_chat_room(db, room_id)
     if not room:
-        raise HTTPException(status_code=404, detail="Chat room not found")
+        return create_json_response(False, "Room not found", status_code=404)
     
-    # Check if user has access to the room
-    if room.is_private and current_user not in room.users:
-        logger.warning(f"Access denied: User {current_user.username} attempted to access messages in private room {room.name}")
-        raise HTTPException(status_code=403, detail="Access denied to private room")
+
+    if current_user not in room.users:
+        logger.warning(f"Access denied: User {current_user.username} attempted to access room {room.name} they are not a member of.")
+        return create_json_response(False, "Access denied: You are not a member of this room", status_code=403)
+    
     
     messages = get_messages(db, room_id, limit)
     return messages

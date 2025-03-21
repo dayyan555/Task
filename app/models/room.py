@@ -11,7 +11,6 @@ class ChatRoom(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(100), index=True)
     creator_id = Column(Integer, ForeignKey("users.id"))
-    is_private = Column(Boolean, default=False)
 
     users = relationship("User", secondary=room_users, back_populates="rooms")
     messages = relationship("Message", back_populates="room")

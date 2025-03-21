@@ -7,7 +7,7 @@ from app.models.user import User
 
 # Create a new chat room
 def create_chat_room(db: Session, room_data: ChatRoomCreate, creator_id: int, random_id: int):
-    new_room = ChatRoom(id= random_id, name=room_data.name, creator_id=creator_id, is_private=room_data.is_private)
+    new_room = ChatRoom(id= random_id, name=room_data.name, creator_id=creator_id)
     db.add(new_room)
     db.commit()
     db.refresh(new_room)

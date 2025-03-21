@@ -4,6 +4,7 @@ services:
   # MySQL container
   mysql:
     image: mysql:5.7
+    command: --default-authentication-plugin=mysql_native_password
     environment:
       MYSQL_ROOT_PASSWORD: chatdb
       MYSQL_DATABASE: chatdb
@@ -13,6 +14,12 @@ services:
       - chat-network
     volumes:
       - mysql_data:/var/lib/mysql  # Persist MySQL data in a Docker volume
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$$MYSQL_ROOT_PASSWORD"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    
 
   # FastAPI app container
   app:
@@ -27,13 +34,15 @@ services:
       - ALLOWED_ORIGINS=*  # Added ALLOWED_ORIGINS for your app's CORS handling
       - APP_NAME=Chat Application
       - APP_VERSION=1.0.0
+      - PYTHONPATH=/app
     depends_on:
-      - mysql  # Ensure MySQL starts before FastAPI app
+      mysql:
+        condition: service_healthy
     networks:
       - chat-network
     volumes:
-      - ./app:/app  # Mount the app directory (optional for live changes during development)
-    command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+      - .:/app  # Mount the app directory (optional for live changes during development)
+    restart: on-failure
 
 networks:
   chat-network:

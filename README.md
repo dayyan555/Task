@@ -148,11 +148,174 @@ To stop and remove the running containers:
 docker-compose down
 ```
 
-## License
+# Multi-User Real-Time Chat Application
 
-This project is licensed under the MIT License.
+This is a FastAPI-based real-time chat application that allows multiple users to create, join, and communicate in chat rooms. The application supports WebSocket for real-time messaging and provides a RESTful API for managing users and chat rooms.
 
----
+## Features
 
-**Happy Chatting! 🎉**
+- User Registration & Authentication
+- Create, Join, and Leave Chat Rooms
+- Real-Time Messaging via WebSockets
+- Retrieve Chat Room Messages and Users
+- RESTful API for Chat Management
+
+## Getting Started
+
+### 1. Clone the Repository
+
+```sh
+git clone https://github.com/dayyan555/Task.git
+cd Task
+```
+
+### 2. Build and Start the Application
+
+#### Build Docker Containers (without cache)
+
+```sh
+docker-compose build --no-cache
+```
+
+#### Start the Application in Detached Mode
+
+```sh
+docker-compose up -d
+```
+
+The API will be available at: [**http://localhost:8000/**](http://localhost:8000/)
+
+## API Endpoints
+
+### Authentication
+
+#### **Register a User**
+
+**POST** `/api/register`
+
+```json
+{
+  "username": "string",
+  "email": "string",
+  "password": "string"
+}
+```
+
+#### **User Login**
+
+**POST** `/api/login`
+
+```json
+{
+  "username": "string",
+  "password": "string"
+}
+```
+
+#### **User Logout**
+
+**POST** `/api/logout`
+
+#### **Delete User Account**
+
+**DELETE** `/api/delete`
+
+### Chat Room Management
+
+#### **Create a Chat Room**
+
+**POST** `/api/chat/rooms`
+
+```json
+{
+  "name": "new chat"
+}
+```
+
+#### **Get All Chat Rooms**
+
+**GET** `/api/chat/rooms`
+
+#### **Get Chat Room Details**
+
+**GET** `/api/chat/rooms/{room_id}`
+
+#### **Join a Chat Room**
+
+**POST** `/api/chat/rooms/{room_id}/join`
+
+#### **Leave a Chat Room**
+
+**POST** `/api/chat/rooms/{room_id}/leave`
+
+#### **Get Chat Room Users**
+
+**GET** `/api/chat/rooms/{room_id}/users`
+
+#### **Get Chat Room Messages**
+
+**GET** `/api/chat/rooms/{room_id}/messages`
+
+## WebSocket for Real-Time Messaging
+
+Connect to the WebSocket server to send and receive messages in real-time.
+
+**WebSocket URL:**
+
+```
+ws://localhost:8000/ws/chat/{room_id}?token={token}
+```
+
+**Sample WebSocket Message Payload:**
+
+```json
+{
+    "text": "hammad here, how are you all"
+}
+```
+
+## Testing the API
+
+### Swagger UI
+
+After starting the application, open your browser and go to:
+
+```
+http://localhost:8000/docs
+```
+
+This will display an interactive API documentation where you can test all endpoints.
+
+### Using Postman
+
+You can also test the API endpoints manually by using [Postman](https://www.postman.com/) or any other API testing tool.
+
+## Stopping the Application
+
+To stop and remove the running containers:
+
+```sh
+docker-compose down
+```
+
+## Backup and Restore MySQL Database
+You can back up and restore the MySQL database used by the application using the following commands:
+
+## Backup the Database
+To create a backup of your MySQL database (chatdb), run the following command:
+
+```sh
+docker exec task-mysql-1 mysqldump -u root -pchatdb chatdb > backup.sql
+```
+This will create a backup.sql file containing the schema and data of the chatdb database.
+
+## Restore the Database
+To restore the database from the backup (backup.sql) in PowerShell, use this command:
+
+```sh
+Get-Content .\backup.sql | docker exec -i task-mysql-1 mysql -u root -pchatdb chatdb
+```
+This command will restore the backup into the chatdb database.
+
+
 
